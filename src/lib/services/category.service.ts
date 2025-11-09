@@ -1,26 +1,15 @@
 import { categoryRepository } from '$lib/repositories';
 import type { Category } from '$lib/models/categories';
+import type { CreateModelDTO } from '$lib/dto/base';
 
 export class CategoryService {
 	/**
 	 * สร้าง category ใหม่
 	 */
-	async createCategory(data: {
-		user_id: string;
-		name: string;
-		icon: string;
-		color: string;
-	}): Promise<Category> {
+	async createCategory(data: CreateModelDTO<Category>): Promise<Category> {
 		// Validate input
 		this.validateCategoryData(data);
-
-		const categoryData = {
-			...data,
-			created_at: new Date().toISOString(),
-			updated_at: new Date().toISOString()
-		};
-
-		return categoryRepository.createCategory(categoryData);
+		return categoryRepository.createCategory(data);
 	}
 
 	/**
@@ -28,25 +17,13 @@ export class CategoryService {
 	 */
 	async updateCategory(
 		categoryId: string,
-		updates: Partial<{
+		updates: {
 			name: string;
-			icon: string;
-			color: string;
-		}>
+			icon?: string;
+			color?: string;
+		}
 	): Promise<Category | null> {
-		// Validate input
-		if (updates.name) {
-			this.validateName(updates.name);
-		}
-
-		if (updates.icon) {
-			this.validateIcon(updates.icon);
-		}
-
-		if (updates.color) {
-			this.validateColor(updates.color);
-		}
-
+		this.validateCategoryData(updates);
 		return categoryRepository.updateCategory(categoryId, updates);
 	}
 
@@ -195,9 +172,8 @@ export class CategoryService {
 	/**
 	 * Validate category data
 	 */
-	private validateCategoryData(data: { name: string; icon: string; color: string }): void {
+	private validateCategoryData(data: { name: string; icon?: string; color?: string }): void {
 		this.validateName(data.name);
-		this.validateIcon(data.icon);
 		this.validateColor(data.color);
 	}
 
@@ -219,26 +195,15 @@ export class CategoryService {
 	}
 
 	/**
-	 * Validate category icon
-	 */
-	private validateIcon(icon: string): void {
-		if (!icon || typeof icon !== 'string') {
-			throw new Error('Category icon is required');
-		}
-
-		if (icon.trim().length === 0) {
-			throw new Error('Category icon cannot be empty');
-		}
-	}
-
-	/**
 	 * Validate category color
 	 */
-	private validateColor(color: string): void {
-		if (!color || typeof color !== 'string') {
-			throw new Error('Category color is required');
+	private validateColor(color: string | undefined): void {
+		if (color === undefined || color === null) {
+			return;
 		}
-
+		if (typeof color !== 'string') {
+			throw new Error('Category color must be a string');
+		}
 		// Check if it's a valid hex color
 		const hexColorRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
 		if (!hexColorRegex.test(color)) {

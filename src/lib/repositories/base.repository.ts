@@ -1,14 +1,18 @@
+import type { BaseModel } from '$lib/models/base';
 import { dynamoDB } from '$lib/aws/dynamodb';
 import { v7 as uuidv7 } from 'uuid';
+import type { DeleteCommandInput, GetCommandInput, QueryCommandInput } from '@aws-sdk/lib-dynamodb';
 
-export interface BaseModel {
-	id: string;
-	created_at: string;
-	updated_at: string;
-	[key: string]: unknown;
-}
+export type GlobalSecondaryIndex = {
+	name: string;
+	primaryKey: string;
+	sortKey?: string;
+};
 
-export abstract class BaseRepository<T extends BaseModel> {
+export abstract class BaseRepository<
+	T extends BaseModel,
+	GSI extends { indexName: string; partitionKey: string }[]
+> {
 	protected tableName: string;
 	protected primaryKey: string;
 	protected sortKey?: string;
@@ -69,7 +73,7 @@ export abstract class BaseRepository<T extends BaseModel> {
 			key[this.sortKey] = sortKeyValue;
 		}
 
-		const command = {
+		const command: GetCommandInput = {
 			TableName: this.tableName,
 			Key: key
 		};
@@ -138,7 +142,7 @@ export abstract class BaseRepository<T extends BaseModel> {
 			key[this.sortKey] = sortKeyValue;
 		}
 
-		const command = {
+		const command: DeleteCommandInput = {
 			TableName: this.tableName,
 			Key: key
 		};
@@ -167,28 +171,46 @@ export abstract class BaseRepository<T extends BaseModel> {
 	}
 
 	/**
-	 * Query ด้วย partition key
+	 * Query
+	 * partitionOptions
+	 * - string: หมายถึง query ด้วย primary key ของ table
+	 * - GlobalSecondaryIndex: หมายถึง query ด้วย GSI ที่ระบุ
 	 */
 	async query(
-		partitionKeyValue: string,
+		partitionOptions:
+			| (string | number | boolean)
+			| (GSI[number] & {
+					partitionKeyValue: unknown;
+			  }),
 		options?: {
 			sortKeyCondition?: {
 				operator: 'begins_with' | '=' | '<' | '<=' | '>' | '>=' | 'between';
 				value: unknown;
 				value2?: unknown; // สำหรับ between
+				reverse?: boolean;
 			};
 			limit?: number;
-			indexName?: string;
 		}
 	): Promise<T[]> {
+		let indexName: string | undefined;
+		let partitionKeyName = '';
+		let partitionKeyValue: unknown;
+		if (typeof partitionOptions !== 'object') {
+			partitionKeyName = this.primaryKey;
+			partitionKeyValue = partitionOptions;
+		} else {
+			indexName = partitionOptions.indexName;
+			partitionKeyName = partitionOptions.partitionKey;
+			partitionKeyValue = partitionOptions.partitionKeyValue;
+		}
+
 		let keyConditionExpression = `#pk = :pk`;
 		const expressionAttributeNames: Record<string, string> = {
-			'#pk': this.primaryKey
+			'#pk': partitionKeyName
 		};
 		const expressionAttributeValues: Record<string, unknown> = {
 			':pk': partitionKeyValue
 		};
-
 		// เพิ่ม sort key condition ถ้ามี
 		if (options?.sortKeyCondition && this.sortKey) {
 			expressionAttributeNames['#sk'] = this.sortKey;
@@ -209,26 +231,17 @@ export abstract class BaseRepository<T extends BaseModel> {
 			}
 		}
 
-		const command: {
-			TableName: string;
-			KeyConditionExpression: string;
-			ExpressionAttributeNames: Record<string, string>;
-			ExpressionAttributeValues: Record<string, unknown>;
-			Limit?: number;
-			IndexName?: string;
-		} = {
+		const command: QueryCommandInput = {
+			IndexName: indexName,
 			TableName: this.tableName,
 			KeyConditionExpression: keyConditionExpression,
 			ExpressionAttributeNames: expressionAttributeNames,
-			ExpressionAttributeValues: expressionAttributeValues
+			ExpressionAttributeValues: expressionAttributeValues,
+			ScanIndexForward: options?.sortKeyCondition?.reverse ? false : true
 		};
 
 		if (options?.limit) {
 			command.Limit = options.limit;
-		}
-
-		if (options?.indexName) {
-			command.IndexName = options.indexName;
 		}
 
 		const result = await dynamoDB.query(command);

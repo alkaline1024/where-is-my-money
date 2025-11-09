@@ -1,14 +1,12 @@
 import { json } from '@sveltejs/kit';
 import { categoryService } from '$lib/services';
 import type { RequestHandler } from './$types';
+import { getUserId } from '../../../utils/session';
 
-export const GET: RequestHandler = async ({ url }) => {
+export const GET: RequestHandler = async (event) => {
+	const userId = getUserId(event);
+	const { url } = event;
 	try {
-		const userId = url.searchParams.get('user_id');
-		if (!userId) {
-			return new Response('user_id parameter is required', { status: 400 });
-		}
-
 		const sortBy = url.searchParams.get('sort_by') as 'name' | 'created_at' | 'updated_at' | null;
 		const sortOrder = url.searchParams.get('sort_order') as 'asc' | 'desc' | null;
 		const color = url.searchParams.get('color');
@@ -38,12 +36,13 @@ export const GET: RequestHandler = async ({ url }) => {
 	}
 };
 
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async (event) => {
+	const userId = getUserId(event);
 	try {
-		const body = await request.json();
+		const body = await event.request.json();
 
 		// Validate required fields
-		const requiredFields = ['user_id', 'name', 'icon', 'color'];
+		const requiredFields = ['name'];
 		for (const field of requiredFields) {
 			if (!body[field]) {
 				return json(
@@ -57,10 +56,10 @@ export const POST: RequestHandler = async ({ request }) => {
 		}
 
 		const category = await categoryService.createCategory({
-			user_id: body.user_id,
+			user_id: userId,
 			name: body.name,
-			icon: body.icon,
-			color: body.color
+			icon: body.icon || null,
+			color: body.color || null
 		});
 
 		return json(

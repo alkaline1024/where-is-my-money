@@ -1,4 +1,4 @@
-import type { BaseModel } from '$lib/repositories/base.repository';
+import type { BaseModel } from './base';
 
 export interface Transaction extends BaseModel {
 	id: string;

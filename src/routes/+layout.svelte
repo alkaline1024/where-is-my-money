@@ -29,6 +29,8 @@
 	<link rel="icon" href={favicon} />
 </svelte:head>
 
+<div id="toast-container z-[9999]"></div>
+
 <header class="flex items-center gap-4 border-b border-gray-200 p-4 dark:border-gray-800">
 	<h1 class="text-xl font-semibold">Where is my money</h1>
 	<div class="ml-auto flex items-center gap-3">

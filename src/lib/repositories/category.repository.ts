@@ -1,10 +1,14 @@
 import { env } from '$env/dynamic/private';
+import type { CreateModelDTO } from '$lib/dto/base';
 import type { Category } from '$lib/models/categories';
 import { BaseRepository } from './base.repository';
 
-export class CategoryRepository extends BaseRepository<Category> {
+export class CategoryRepository extends BaseRepository<
+	Category,
+	[{ indexName: 'user_id-name-index'; partitionKey: 'user_id' }]
+> {
 	constructor(tableName = env.DDB_TABLE_CATEGORIES) {
-		super(tableName, 'category_id');
+		super(tableName, 'id', 'name');
 		if (!tableName) {
 			throw new Error('DDB_TABLE_TRANSACTIONS environment variable is not set');
 		}
@@ -14,10 +18,14 @@ export class CategoryRepository extends BaseRepository<Category> {
 	 * ค้นหา categories ตาม user_id
 	 */
 	async findByUserId(userId: string, limit?: number): Promise<Category[]> {
-		return this.query(userId, {
-			limit,
-			indexName: 'user_id-name-index' // สมมติว่ามี GSI นี้
-		});
+		return this.query(
+			{
+				indexName: 'user_id-name-index',
+				partitionKey: 'user_id',
+				partitionKeyValue: userId
+			},
+			{ limit }
+		);
 	}
 
 	/**
@@ -48,9 +56,7 @@ export class CategoryRepository extends BaseRepository<Category> {
 	/**
 	 * สร้าง category ใหม่ (ตรวจสอบชื่อซ้ำก่อน)
 	 */
-	async createCategory(
-		categoryData: Omit<Category, 'id' | 'created_at' | 'updated_at'>
-	): Promise<Category> {
+	async createCategory(categoryData: CreateModelDTO<Category>): Promise<Category> {
 		const isExists = await this.isNameExists(
 			categoryData.user_id as string,
 			categoryData.name as string

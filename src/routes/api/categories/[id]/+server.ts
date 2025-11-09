@@ -1,12 +1,12 @@
 import { json } from '@sveltejs/kit';
 import { categoryService } from '$lib/services';
 import type { RequestHandler } from './$types';
+import { getUserId } from '../../../../utils/session';
 
-export const GET: RequestHandler = async ({ params, url }) => {
+export const GET: RequestHandler = async (event) => {
+	const userId = getUserId(event);
+	const { id } = event.params;
 	try {
-		const { id } = params;
-		const userId = url.searchParams.get('user_id');
-
 		const category = await categoryService.getCategoryById(id, userId || undefined);
 
 		if (!category) {
@@ -24,7 +24,7 @@ export const GET: RequestHandler = async ({ params, url }) => {
 			data: category
 		});
 	} catch (error) {
-		console.error(`GET /api/categories/${params.id} error:`, error);
+		console.error(`GET /api/categories/${id} error:`, error);
 		return json(
 			{
 				success: false,
@@ -35,7 +35,8 @@ export const GET: RequestHandler = async ({ params, url }) => {
 	}
 };
 
-export const PUT: RequestHandler = async ({ params, request }) => {
+export const PUT: RequestHandler = async (event) => {
+	const { params, request } = event;
 	try {
 		const { id } = params;
 		const body = await request.json();
@@ -68,10 +69,11 @@ export const PUT: RequestHandler = async ({ params, request }) => {
 	}
 };
 
-export const DELETE: RequestHandler = async ({ params, url }) => {
+export const DELETE: RequestHandler = async (event) => {
+	const userId = getUserId(event);
+	const { params } = event;
 	try {
 		const { id } = params;
-		const userId = url.searchParams.get('user_id');
 
 		if (!userId) {
 			return json(
