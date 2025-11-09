@@ -6,8 +6,10 @@
 	import { categoryFormSchema } from '../../forms/category.form';
 	import { validateForm } from '../../utils/forms';
 	import { showErrorToast, showSuccessToast } from '../../utils/toasts';
+	import Icon from '@iconify/svelte';
 
 	let isLoading = $state(true);
+	let isEditCategoryId: string | null = $state(null);
 	let categories: Category[] = $state([]);
 	let form = $state({
 		name: '',
@@ -28,31 +30,37 @@
 		}
 	};
 
-	const handleSubmitCreateForm = async (event: Event) => {
+	const handleSubmitCategoryForm = async (event: Event) => {
 		event.preventDefault();
 		const errors = validateForm(form, categoryFormSchema);
 		if (errors) {
 			return;
 		}
+		const action = isEditCategoryId ? 'แก้ไข' : 'สร้าง';
 		try {
-			const response = await fetch('/api/categories', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify(form)
-			});
+			const response = await fetch(
+				isEditCategoryId ? `/api/categories/${isEditCategoryId}` : '/api/categories',
+				{
+					method: isEditCategoryId ? 'PUT' : 'POST',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify(form)
+				}
+			);
 			if (response.ok) {
 				closeCategoryFormModal();
-				showSuccessToast('สร้างหมวดหมู่สำเร็จ');
+				showSuccessToast(`${action}หมวดหมู่สำเร็จ`);
 				await fetchCategories();
 				form.name = '';
+				form.icon = '';
 				form.color = '';
 			} else {
-				console.error('Error creating category:', response.statusText);
+				throw new Error(`HTTP error! status: ${response.status}`);
 			}
 		} catch (error) {
 			console.error('Error creating category:', error);
+			showErrorToast(`เกิดข้อผิดพลาดในการ${action}หมวดหมู่`);
 		}
 	};
 
@@ -81,16 +89,26 @@
 				form.name = '';
 				form.color = '';
 				form.icon = '';
+				isEditCategoryId = null;
 				openCategoryFormModal();
-			}}>สร้าง</button
+			}}
 		>
+			<Icon icon="mdi:plus" class="size-5" />
+			สร้าง
+		</button>
 		<dialog class="modal" id="category-form-modal">
 			<div class="modal-box">
-				<form onsubmit={handleSubmitCreateForm}>
+				<form onsubmit={handleSubmitCategoryForm}>
 					<h3 class="text-lg font-bold">สร้างหมวดหมู่ใหม่</h3>
 					<div class="space-y-2 py-4">
 						<Input label="ชื่อ" placeholder="ชื่อหมวดหมู่" class="w-full" bind:value={form.name} />
-						<Input label="สี" placeholder="สีหมวดหมู่" class="w-full" bind:value={form.color} />
+						<Input
+							label="สี"
+							type="color"
+							placeholder="สีหมวดหมู่"
+							class="w-full"
+							bind:value={form.color}
+						/>
 						<Input label="ไอคอน" placeholder="ไอคอนแสดง" class="w-full" bind:value={form.icon} />
 					</div>
 					<div class="modal-action">
@@ -110,23 +128,29 @@
 				accessorKey: 'id'
 			},
 			{
-				header: 'Color',
-				accessorKey: 'color'
-			},
-			{
-				header: 'Name',
+				header: 'ชื่อ',
 				accessorKey: 'name'
 			},
 			{
-				header: 'Created Date',
-				accessorKey: 'created_date'
+				header: 'สี',
+				accessorKey: 'color'
 			},
 			{
-				header: 'Updated Date',
-				accessorKey: 'updated_date'
+				header: 'ไอคอน',
+				accessorKey: 'icon'
 			},
 			{
-				header: 'Actions',
+				header: 'วันที่สร้าง',
+				accessorKey: 'created_at',
+				type: 'datetime'
+			},
+			{
+				header: 'วันที่แก้ไข',
+				accessorKey: 'updated_at',
+				type: 'datetime'
+			},
+			{
+				header: 'จัดการ',
 				type: 'actions',
 				actions: [
 					{
@@ -136,6 +160,7 @@
 							form.name = row.name;
 							form.color = row.color;
 							form.icon = row.icon;
+							isEditCategoryId = row.id;
 							openCategoryFormModal();
 						}
 					},

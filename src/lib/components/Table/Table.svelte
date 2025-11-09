@@ -100,7 +100,7 @@
 									</button>
 								{/each}
 							{:else}
-								{renderCell(row, column)}
+								{renderCell(row, column) || '-'}
 							{/if}
 						</td>
 					{/each}

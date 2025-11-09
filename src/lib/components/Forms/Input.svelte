@@ -1,11 +1,16 @@
 <script lang="ts">
 	import clsx from 'clsx';
+	import type { HTMLInputTypeAttribute } from 'svelte/elements';
 
-	let { value = $bindable(), ...props }: {
+	let {
+		value = $bindable(),
+		...props
+	}: {
 		name?: string;
 		label?: string;
 		placeholder?: string;
 		class?: string;
+		type?: HTMLInputTypeAttribute;
 		value?: string;
 	} = $props();
 </script>
@@ -19,9 +24,9 @@
 	<input
 		id={props.name}
 		name={props.name}
-		type="text"
-		class={clsx('input-bordered input', props.class)}
+		type={props.type || 'text'}
 		placeholder={props.placeholder}
+		class={clsx('input-bordered input', props.class)}
 		bind:value
 	/>
 </div>
