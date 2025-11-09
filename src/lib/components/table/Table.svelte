@@ -3,7 +3,7 @@
 	import clsx from 'clsx';
 
 	type Column = {
-		type?: 'date' | 'datetime';
+		type?: 'date' | 'datetime' | 'icon';
 		header: string;
 		accessorKey?: keyof T;
 		cell?: (row: T) => any;
@@ -32,15 +32,12 @@
 	const renderCell = (row: T, column: Column) => {
 		if (column.cell) {
 			return column.cell(row);
-		}
-		if (!column.accessorKey) {
+		} else if (!column.accessorKey) {
 			return '';
-		}
-		if (column.type === 'date') {
+		} else if (column.type === 'date') {
 			const date = new Date(String(row[column.accessorKey]));
 			return date.toLocaleDateString();
-		}
-		if (column.type === 'datetime') {
+		} else if (column.type === 'datetime') {
 			const date = new Date(String(row[column.accessorKey]));
 			return date.toLocaleString();
 		}
@@ -99,6 +96,8 @@
 										{action.label}
 									</button>
 								{/each}
+							{:else if column.type === 'icon'}
+								<Icon icon={String(renderCell(row, column))} class="text-2xl"></Icon>
 							{:else}
 								{renderCell(row, column) || '-'}
 							{/if}

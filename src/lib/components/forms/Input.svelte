@@ -12,6 +12,9 @@
 		class?: string;
 		type?: HTMLInputTypeAttribute;
 		value?: string;
+		required?: boolean;
+		readonly?: boolean;
+		disabled?: boolean;
 	} = $props();
 </script>
 
@@ -27,6 +30,9 @@
 		type={props.type || 'text'}
 		placeholder={props.placeholder}
 		class={clsx('input-bordered input', props.class)}
+		required={props.required}
+		readonly={props.readonly}
+		disabled={props.disabled}
 		bind:value
 	/>
 </div>

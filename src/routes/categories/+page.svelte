@@ -1,12 +1,14 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import type { Category } from '$lib/models/categories';
-	import Input from '$lib/components/Forms/Input.svelte';
-	import Table from '$lib/components/Table/Table.svelte';
+	import Input from '$lib/components/forms/Input.svelte';
+	import Table from '$lib/components/table/Table.svelte';
 	import { categoryFormSchema } from '../../forms/category.form';
 	import { validateForm } from '../../utils/forms';
 	import { showErrorToast, showSuccessToast } from '../../utils/toasts';
 	import Icon from '@iconify/svelte';
+	import SelectCombobox from '$lib/components/forms/SelectCombobox.svelte';
+	import SelectIconifyIcon from '$lib/components/forms/SelectIconifyIcon.svelte';
 
 	let isLoading = $state(true);
 	let isEditCategoryId: string | null = $state(null);
@@ -101,7 +103,13 @@
 				<form onsubmit={handleSubmitCategoryForm}>
 					<h3 class="text-lg font-bold">สร้างหมวดหมู่ใหม่</h3>
 					<div class="space-y-2 py-4">
-						<Input label="ชื่อ" placeholder="ชื่อหมวดหมู่" class="w-full" bind:value={form.name} />
+						<Input
+							required
+							label="ชื่อหมวดหมู่"
+							placeholder="ระบุชื่อหมวดหมู่ (บังคับ)"
+							class="w-full"
+							bind:value={form.name}
+						/>
 						<Input
 							label="สี"
 							type="color"
@@ -109,7 +117,12 @@
 							class="w-full"
 							bind:value={form.color}
 						/>
-						<Input label="ไอคอน" placeholder="ไอคอนแสดง" class="w-full" bind:value={form.icon} />
+						<SelectIconifyIcon
+							label="ไอคอน"
+							placeholder="ไอคอนแสดง"
+							class="w-full"
+							bind:value={form.icon}
+						/>
 					</div>
 					<div class="modal-action">
 						<button class="btn mb-2 btn-primary">บันทึก</button>
@@ -137,7 +150,8 @@
 			},
 			{
 				header: 'ไอคอน',
-				accessorKey: 'icon'
+				accessorKey: 'icon',
+				type: 'icon',
 			},
 			{
 				header: 'วันที่สร้าง',
